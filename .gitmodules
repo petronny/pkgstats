@@ -1,0 +1,3 @@
+[submodule "djangorm"]
+	path = djangorm
+	url = https://github.com/petronny/djangorm

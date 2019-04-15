@@ -1,12 +1,14 @@
 #!/bin/python3
+import os
+import sys
 import urllib.request
 import urllib.parse
 import json
-import sys
 import time
-import progressbar
-import djangorm
 import datetime
+import progressbar
+sys.path.append(os.path.join(os.path.dirname(__file__), 'djangorm'))
+import djangorm
 from db.models import Cache
 
 threshold = datetime.datetime.now() + datetime.timedelta(days=-7)
@@ -71,6 +73,7 @@ def search(pkgname, force_online=False):
 
 if __name__ == '__main__':
     djangorm.migrate()
+
     try:
         pkgname = sys.argv[1]
     except:
