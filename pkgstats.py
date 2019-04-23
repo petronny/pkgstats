@@ -26,7 +26,7 @@ def search_online(pkgname):
     bar = progressbar.ProgressBar(max_value=1)
     bar.update(0)
     tmp_url = url + '?' + urllib.parse.urlencode(params)
-    response = urllib.request.urlopen(tmp_url, timeout=3).read().decode('utf-8')
+    response = urllib.request.urlopen(tmp_url).read().decode('utf-8')
     response = json.loads(response)
     bar.max_value = response['recordsFiltered']
     bar.update(len(response['data']))
@@ -45,9 +45,10 @@ def search_online(pkgname):
     if pkgname != '':
         try:
             cache = Cache.objects.get(pkgname=pkgname)
-            return cache
         except:
-            return None
+            cache = Cache(pkgname=pkgname, total=search('pacman').total)
+            cache.save()
+        return cache
     return None
 
 def update_cache(pkgname, count, total):
