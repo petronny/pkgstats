@@ -6,7 +6,6 @@ import urllib.parse
 import json
 import time
 import datetime
-import progressbar
 sys.path.append(os.path.join(os.path.dirname(__file__), 'djangorm'))
 import djangorm
 from db.models import Cache
@@ -14,42 +13,14 @@ from db.models import Cache
 threshold = datetime.datetime.now() + datetime.timedelta(days=-7)
 
 def search_online(pkgname):
-    url = 'https://pkgstats.archlinux.de/package/datatables'
-    length = 100
-    params = {
-            "draw": "1",
-            "start": 0,
-            "length": length,
-            "search[value]": '%s' % pkgname
-            }
-
-    bar = progressbar.ProgressBar(max_value=1)
-    bar.update(0)
-    tmp_url = url + '?' + urllib.parse.urlencode(params)
-    response = urllib.request.urlopen(tmp_url).read().decode('utf-8')
+    url = 'https://pkgstats.archlinux.de/api/packages/%s' % pkgname
+    #params = {'startMonth': 201901, 'endMonth': 201901}
+    #url = url + '?' + urllib.parse.urlencode(params)
+    response = urllib.request.urlopen(url).read().decode('utf-8')
     response = json.loads(response)
-    bar.max_value = response['recordsFiltered']
-    bar.update(len(response['data']))
-    progressbar.streams.flush()
-    for i in range(0, (response['recordsFiltered'] - 1) // length):
-        time.sleep(1)
-        params["start"] = (i + 1) * length
-        tmp_url = url + '?' + urllib.parse.urlencode(params)
-        tmp_response = urllib.request.urlopen(tmp_url, timeout=3).read().decode('utf-8')
-        response['data'] += json.loads(tmp_response)['data']
-        bar.update(len(response['data']))
-    print()
-    for i in response['data']:
-        update_cache(i['pkgname'], i['count'], response['recordsTotal'])
-
-    if pkgname != '':
-        try:
-            cache = Cache.objects.get(pkgname=pkgname)
-        except:
-            cache = Cache(pkgname=pkgname, total=search('pacman').total)
-            cache.save()
-        return cache
-    return None
+    update_cache(response['name'], response['count'], response['samples'])
+    cache = Cache.objects.get(pkgname=pkgname)
+    return cache
 
 def update_cache(pkgname, count, total):
     try:
@@ -75,14 +46,15 @@ def search(pkgname, force_online=False):
 if __name__ == '__main__':
     djangorm.migrate()
 
-    try:
-        pkgname = sys.argv[1]
-    except:
-        pkgname = ''
+    pkgname = sys.argv[1]
+
+    if len(sys.argv) < 2:
+        print('Usage:\tpython pkgstats.py [pkgname]')
+        sys.exit()
 
     #list_cache()
 
-    result = search(pkgname)
+    result = search(pkgname, True)
 
     if result:
         print('%d / %d = %.2f%%' % (result.count, result.total, 100 * result.count / result.total))
