@@ -13,12 +13,16 @@ from db.models import Cache
 threshold = datetime.datetime.now() + datetime.timedelta(days=-7)
 
 def search_online(pkgname):
-    url = 'https://pkgstats.archlinux.de/api/packages/%s' % pkgname
+    url = 'https://pkgstats.archlinux.de/api/packages/%s/series' % pkgname
     #params = {'startMonth': 201901, 'endMonth': 201901}
     #url = url + '?' + urllib.parse.urlencode(params)
     response = urllib.request.urlopen(url).read().decode('utf-8')
-    response = json.loads(response)
-    update_cache(response['name'], response['count'], response['samples'])
+    response = json.loads(response)['packagePopularities']
+    if len(response) == 0:
+        update_cache(pkgname, 0, search('pacman').total)
+    else:
+        response = response[0]
+        update_cache(response['name'], response['count'], response['samples'])
     cache = Cache.objects.get(pkgname=pkgname)
     return cache
 
